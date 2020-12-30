@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>invaders</title>
+  <script src="../jsgame0.js"></script>
+  <style type="text/css" media="screen">
+body {
+  background-color: white;
+  color: black;
+}
+.hidden {
+  display: none;
+}
+#original {
+  margin-left: 1em;
+}
+  </style>
+</head>
+
+<body>
+<section id="imageLoader" class="hidden">
+  <img class="hidden" src="images/explode.png" alt="explode">
+  <img class="hidden" src="images/explode_black.png" alt="explode_black">
+  <img class="hidden" src="images/shield.png" alt="shield">
+  <img class="hidden" src="images/shot.png" alt="shot">
+  <img class="hidden" src="images/shot_black.png" alt="shot_black">
+</section>
+
+<main>
+<h1>invaders</h1>
+
+<canvas id="screen">
+The game screen appears here if your browser supports the Canvas API.
+</canvas>
+<section id="controls">
+  <button type="button" id="reset">Reset</button>
+  <button type="button" id="pause">Pause</button>
+</section>
+
+<h2>Attribution</h2>
+
+<p>This code example is taken from <a href="https://wireframe.raspberrypi.org/issues/9">Wireframe #9 Source Code: Space Invaders' disintegrating shields, pages 32-33, by Andrew Gillett</a>.</p>
+
+<p>Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported</a>.</p>
+
+<h2>Original Python code</h2>
+
+<pre id="original"><code>
+from random import randint
+
+WIDTH,HEIGHT = 1200, 700 # Dimensions of the screen (pixels)
+shots, to_delete, first_frame = [], [], True
+
+def create_random_shot():
+    shots.append({&#x27;pos&#x27;: [randint(0, (WIDTH-images.shot.get_width())/10)*10, 0],
+                  &#x27;sprite&#x27;: images.shot,
+                  &#x27;exploding&#x27;: False})
+
+# A shot will be created in a random position every half second
+clock.schedule_interval(create_random_shot, 0.5) # Try reducing number to 0.1!
+
+def draw():
+    global first_frame, to_delete
+    if first_frame:
+        for x in range(50, WIDTH, 300):
+            screen.blit(images.shield, [x, 500])
+        first_frame = False
+
+    for item in to_delete:
+        screen.blit(item[&#x27;sprite&#x27;], item[&#x27;pos&#x27;])
+    to_delete = []  # Clear list
+
+    for shot in shots:
+        screen.blit(shot[&#x27;sprite&#x27;], shot[&#x27;pos&#x27;])
+
+def update(dt):
+    # Step backwards through the shots list. This avoids errors that occur
+    # when deleting items from the list during the for loop.
+    for i in range(len(shots)-1, -1, -1):
+        shot = shots[i]
+        if shot[&#x27;exploding&#x27;]:
+            shot[&#x27;timer&#x27;] -= 1
+            if shot[&#x27;timer&#x27;] &lt;= 0:
+                to_delete.append({&#x27;pos&#x27;:shot[&#x27;pos&#x27;],&#x27;sprite&#x27;:images.explode_black})
+                del shots[i]
+        else:
+            # Before moving shot, add the current position to the to_delete list
+            to_delete.append({&#x27;pos&#x27;:shot[&#x27;pos&#x27;].copy(),&#x27;sprite&#x27;:images.shot_black})
+            shot[&#x27;pos&#x27;][1] += 20    # Move down the screen
+            # Do collision detection based on the centre of the sprite
+            half_width = shot[&#x27;sprite&#x27;].get_width() // 2   # // = integer divide
+            half_height = shot[&#x27;sprite&#x27;].get_height() // 2
+            if shot[&#x27;pos&#x27;][1]+half_height &gt;= HEIGHT:
+                del shots[i]    # Gone off bottom of screen
+            else:
+                # Hit something? If so change to exploding sprite
+                collide_check_pos = (shot[&#x27;pos&#x27;][0]+half_width,
+                                     shot[&#x27;pos&#x27;][1]+half_height)
+                if screen.surface.get_at(collide_check_pos) != (0,0,0):
+                    shot[&#x27;sprite&#x27;] = images.explode
+                    shot[&#x27;exploding&#x27;] = True
+                    shot[&#x27;timer&#x27;] = 5
+</code></pre>
+</main>
+
+<script>
+WIDTH = 1200;
+HEIGHT = 700; // Dimensions of the screen (pixels)
+
+var shots, to_delete, first_frame;
+
+/*
+ * Return a random integer N such that min <= N < max.
+ */
+function getRandomInteger(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor((Math.random() * (max - min)) + min);
+}
+
+function create_random_shot() {
+  shots.push({
+    pos: [getRandomInteger(0, ((WIDTH - images.shot.width) / 10) + 1) * 10, 0],
+    sprite: 'shot',
+    exploding: false
+  });
+}
+
+function reset() {
+  shots = [];
+  to_delete = [];
+  first_frame = true;
+
+  // A shot will be created in a random position every half second
+  clock.schedule_interval(create_random_shot, 0.5); // Try reducing number to 0.1!
+}
+
+function draw() {
+  if (first_frame) {
+    for (let x = 50; x < WIDTH; x += 300) {
+      screen.blit('shield', [x, 500]);
+    }
+    first_frame = false;
+  }
+
+  for (let item of to_delete) {
+    screen.blit(item['sprite'], item['pos']);
+  }
+  to_delete = [];  // Clear list
+
+  for (let shot of shots) {
+    screen.blit(shot['sprite'], shot['pos']);
+  }
+}
+
+function update(dt) {
+  // Step backwards through the shots list. This avoids errors that occur
+  // when deleting items from the list during the for loop.
+  for (let i = shots.length - 1; i > -1; i--) {
+    let shot = shots[i];
+    if (shot['exploding']) {
+      shot['timer'] -= 1;
+      if (shot['timer'] <= 0) {
+        to_delete.push({pos: shot['pos'], sprite: 'explode_black'});
+        shots.splice(i, 1);
+      }
+    }
+    else {
+      // Before moving shot, add the current position to the to_delete list
+      to_delete.push({pos: shot['pos'].slice(), sprite: 'shot_black'});
+      shot['pos'][1] += 20;    // Move down the screen
+      // Do collision detection based on the centre of the sprite
+      let image = images[shot['sprite']],
+          half_width = Math.floor(image.width / 2),
+          half_height = Math.floor(image.height / 2);
+      if ((shot['pos'][1] + half_height) >= HEIGHT) {
+        shots.splice(i, 1);    // Gone off bottom of screen
+      }
+      else {
+        // Hit something? If so change to exploding sprite
+        let x = shot['pos'][0] + half_width,
+            y = shot['pos'][1] + half_height,
+            color = screen.getSurface(x, y, 1, 1).getAt();
+        if (!Surface.isColorEqual(color, [0, 0, 0])) {
+          shot['sprite'] = 'explode';
+          shot['exploding'] = true;
+          shot['timer'] = 5;
+        }
+      }
+    }
+  }
+}
+
+window.addEventListener('load', (event) => {
+  images.LOAD('#imageLoader img');
+  reset();
+  screen.set_mode('#screen', '#reset', '#pause');
+});
+</script>
+</body>
+
+</html>
